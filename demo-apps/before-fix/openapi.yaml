@@ -1,0 +1,352 @@
+openapi: 3.0.3
+info:
+  title: ShopLite Marketplace API (Vulnerable Edition)
+  description: Multi-tenant e-commerce platform with intentional object-level authorization vulnerabilities (OWASP API1:2023 BOLA).
+  version: 1.0.0
+servers:
+  - url: http://localhost:5001
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - BearerAuth: []
+paths:
+  /api/auth/register:
+    post:
+      security: []
+      summary: Register a new customer or vendor account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                  example: alice
+                email:
+                  type: string
+                  example: alice@shoplite.dev
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '201':
+          description: Created
+  /api/auth/login:
+    post:
+      security: []
+      summary: Authenticate user and receive JWT access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: alice
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: Success
+  /api/auth/me:
+    get:
+      summary: Retrieve current authenticated identity profile
+      responses:
+        '200':
+          description: Success
+  /api/users/{id}:
+    get:
+      summary: Retrieve user account profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success
+    put:
+      summary: Update user account contact information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: alice
+                email:
+                  type: string
+                  example: alice@shoplite.dev
+                full_name:
+                  type: string
+                  example: Alice Walker
+                phone:
+                  type: string
+                  example: +1-555-0101
+      responses:
+        '200':
+          description: Success
+  /api/orders:
+    get:
+      summary: List user order history
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success
+    post:
+      summary: Place a new order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - amount
+              properties:
+                user_id:
+                  type: integer
+                  example: 1
+                product_id:
+                  type: integer
+                  example: 1
+                title:
+                  type: string
+                  example: Wireless Noise-Cancelling Headphones
+                description:
+                  type: string
+                  example: Express 2-day delivery
+                status:
+                  type: string
+                  example: pending
+                amount:
+                  type: number
+                  example: 149.99
+                shipping_address:
+                  type: string
+                  example: 742 Evergreen Terrace, Springfield OR 97477
+      responses:
+        '201':
+          description: Created
+  /api/orders/{id}:
+    get:
+      summary: Retrieve order invoice and shipment tracking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success
+    put:
+      summary: Update order delivery instructions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Wireless Noise-Cancelling Headphones
+                description:
+                  type: string
+                  example: Deliver to back porch
+                status:
+                  type: string
+                  example: processing
+                amount:
+                  type: number
+                  example: 149.99
+                shipping_address:
+                  type: string
+                  example: 742 Evergreen Terrace, Springfield OR 97477
+      responses:
+        '200':
+          description: Success
+    delete:
+      summary: Cancel placed order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success
+  /api/products:
+    get:
+      security: []
+      summary: List all catalog products
+      responses:
+        '200':
+          description: Success
+    post:
+      summary: Create new vendor product listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+              properties:
+                name:
+                  type: string
+                  example: Wireless Noise-Cancelling Headphones
+                description:
+                  type: string
+                  example: Over-ear Bluetooth headphones with active noise cancellation
+                category:
+                  type: string
+                  example: Electronics
+                price:
+                  type: number
+                  example: 149.99
+                stock:
+                  type: integer
+                  example: 10
+                image_url:
+                  type: string
+                  example: https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500
+      responses:
+        '201':
+          description: Created
+  /api/products/{id}:
+    get:
+      security: []
+      summary: Retrieve product details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success
+    put:
+      summary: Update product listing details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Wireless Noise-Cancelling Headphones
+                description:
+                  type: string
+                  example: Over-ear Bluetooth headphones with active noise cancellation
+                category:
+                  type: string
+                  example: Electronics
+                price:
+                  type: number
+                  example: 139.99
+                stock:
+                  type: integer
+                  example: 15
+                image_url:
+                  type: string
+                  example: https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500
+      responses:
+        '200':
+          description: Success
+    delete:
+      summary: Remove product listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success
+  /api/admin/users:
+    get:
+      summary: List all registered tenant accounts
+      responses:
+        '200':
+          description: Success
+  /api/admin/reports:
+    get:
+      summary: Retrieve platform sales and revenue metrics
+      responses:
+        '200':
+          description: Success
+  /api/admin/users/{id}:
+    delete:
+      summary: Terminate user account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Success

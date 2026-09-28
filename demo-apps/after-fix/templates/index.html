@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopLite Marketplace — Secure Edition</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <h1>ShopLite</h1>
+      <span class="badge badge-secure">Secure (Port 5002)</span>
+    </div>
+    <div class="user-status">
+      <span id="user-display" style="color: var(--text-muted); font-size: 0.9rem;">Not logged in</span>
+      <button class="btn btn-danger" id="logout-btn" style="display:none;" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="banner">
+      <h2>Welcome to ShopLite Marketplace (Hardened)</h2>
+      <p>This application implements <strong>strict object-level authorization (BOLA remediation)</strong>. All object requests verify tenant ownership against the verified JWT claims and return 404 to avoid existence leakage.</p>
+      
+      <div style="margin-top: 16px;">
+        <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Quick Switch User Profile:</span>
+        <div class="role-switcher">
+          <button class="btn" onclick="quickLogin('alice', 'password123')">🔑 Alice (User #1 - Owns Orders 1, 2)</button>
+          <button class="btn" onclick="quickLogin('bob', 'password123')">🔑 Bob (User #2 - Owns Orders 3, 4)</button>
+          <button class="btn" onclick="quickLogin('admin', 'admin123')">🛡️ Admin (User #3)</button>
+        </div>
+      </div>
+
+      <!-- Active JWT Token Banner -->
+      <div id="token-display-box" style="display:none; margin-top: 18px; background: rgba(15, 23, 42, 0.7); border: 1px solid #10b981; border-radius: 8px; padding: 14px 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 0.85rem; font-weight: 700; color: #6ee7b7; text-transform: uppercase; letter-spacing: 0.5px;" id="token-label">
+            🔑 Active JWT Bearer Token:
+          </span>
+          <button class="btn btn-primary" style="font-size: 0.8rem; padding: 4px 12px; background: #059669;" onclick="copyCurrentToken()" id="copy-token-text">
+            📋 Copy Token
+          </button>
+        </div>
+        <div style="font-family: monospace; font-size: 0.8rem; color: #34d399; background: #0f172a; padding: 10px 12px; border-radius: 6px; word-break: break-all; max-height: 80px; overflow-y: auto; border: 1px solid #1e293b;" id="token-raw">
+        </div>
+        <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 6px; margin-bottom: 0;">
+          💡 Click <strong>Copy Token</strong> and paste this into the <strong>WAS Mini Dashboard</strong> (New Scan -> Authentication Roles).
+        </p>
+      </div>
+    </div>
+
+    <!-- Product Catalog -->
+    <div class="section-title">
+      <span>Featured Products</span>
+      <span style="font-size: 0.85rem; color: var(--text-muted);">Public Endpoint: GET /api/products</span>
+    </div>
+    <div class="product-grid" id="product-list">
+      <!-- Injected via JS -->
+    </div>
+
+    <!-- User Orders -->
+    <div class="section-title">
+      <span>My Placed Orders</span>
+      <button class="btn" onclick="fetchOrders()">🔄 Refresh Orders</button>
+    </div>
+    <table class="orders-table" id="orders-table-wrapper" style="margin-bottom: 40px;">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Item Title</th>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Tracking #</th>
+          <th>Shipping Address</th>
+        </tr>
+      </thead>
+      <tbody id="orders-tbody">
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+            Log in as Alice or Bob to view authenticated orders
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- BOLA Educational Sandbox -->
+    <div class="sandbox-box">
+      <h3 style="margin-bottom: 8px;">🛡️ Authorization Verification Sandbox (Security Verification)</h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+        Attempting to access other tenant records should now return clean HTTP 404 (Not Found).
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <!-- Test 1: Horizontal BOLA -->
+        <div style="background: rgba(15, 23, 42, 0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+          <strong style="color: #34d399;">FIX 1 & 2: Object Ownership Enforced</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0;">Attempt to fetch another user's order (e.g. Alice fetching Order #3).</p>
+          <div class="sandbox-controls">
+            <input class="input-field" type="number" id="bola-order-id" value="3" placeholder="Order ID" style="width: 100px;">
+            <button class="btn btn-primary" onclick="testOrderBOLA()">GET /api/orders/{id}</button>
+          </div>
+        </div>
+
+        <!-- Test 2: Query Param BOLA -->
+        <div style="background: rgba(15, 23, 42, 0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+          <strong style="color: #34d399;">FIX 5: Query Parameter Ignored</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0;">?user_id= is ignored; results are derived strictly from JWT.</p>
+          <div class="sandbox-controls">
+            <input class="input-field" type="number" id="qp-user-id" value="2" placeholder="User ID" style="width: 100px;">
+            <button class="btn btn-primary" onclick="testQueryParamBOLA()">GET /api/orders?user_id={id}</button>
+          </div>
+        </div>
+
+        <!-- Test 3: Vertical Privilege -->
+        <div style="background: rgba(15, 23, 42, 0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+          <strong style="color: #34d399;">FIX 4: Role-Based Access Control (@require_admin)</strong>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0;">Admin routes are strictly blocked for regular user roles.</p>
+          <div class="sandbox-controls">
+            <button class="btn btn-primary" onclick="testAdminPrivilege()">GET /api/admin/reports</button>
+            <button class="btn btn-primary" onclick="testAdminUsers()">GET /api/admin/users</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="output-panel" id="sandbox-output">// Response will display here after testing an endpoint above...</div>
+    </div>
+  </div>
+
+  <script>
+    let currentToken = localStorage.getItem('shoplite_token_secure') || '';
+    let currentUser = JSON.parse(localStorage.getItem('shoplite_user_secure') || 'null');
+
+    function updateAuthUI() {
+      const display = document.getElementById('user-display');
+      const logoutBtn = document.getElementById('logout-btn');
+      const tokenBox = document.getElementById('token-display-box');
+      const tokenRaw = document.getElementById('token-raw');
+      const tokenLabel = document.getElementById('token-label');
+
+      if (currentUser && currentToken) {
+        display.innerHTML = `Signed in as <strong>${currentUser.username}</strong> (${currentUser.role}) — ID #${currentUser.id}`;
+        display.style.color = '#34d399';
+        logoutBtn.style.display = 'inline-block';
+        if (tokenBox) {
+          tokenBox.style.display = 'block';
+          tokenLabel.textContent = `🔑 Active JWT Bearer Token (${currentUser.username.toUpperCase()}):`;
+          tokenRaw.textContent = currentToken;
+        }
+        fetchOrders();
+      } else {
+        display.textContent = 'Not logged in';
+        display.style.color = 'var(--text-muted)';
+        logoutBtn.style.display = 'none';
+        if (tokenBox) tokenBox.style.display = 'none';
+        document.getElementById('orders-tbody').innerHTML = `
+          <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+            Log in as Alice or Bob to view authenticated orders
+          </td></tr>
+        `;
+      }
+    }
+
+    function copyCurrentToken() {
+      if (!currentToken) return;
+      navigator.clipboard.writeText(currentToken);
+      const btn = document.getElementById('copy-token-text');
+      if (btn) btn.textContent = '✅ Copied!';
+      setTimeout(() => {
+        if (btn) btn.textContent = '📋 Copy Token';
+      }, 2000);
+    }
+
+    async function quickLogin(username, password) {
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({username, password})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          currentToken = data.token;
+          localStorage.setItem('shoplite_token_secure', data.token);
+          // Fetch current user details via /api/auth/me
+          const meRes = await fetch('/api/auth/me', {
+            headers: {'Authorization': `Bearer ${currentToken}`}
+          });
+          currentUser = await meRes.json();
+          localStorage.setItem('shoplite_user_secure', JSON.stringify(currentUser));
+          updateAuthUI();
+          logOutput(`Successfully logged in as ${username} (ID: ${currentUser.id}, Role: ${currentUser.role})`);
+        } else {
+          alert('Login failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Network error connecting to API: ' + err.message);
+      }
+    }
+
+    function logout() {
+      currentToken = '';
+      currentUser = null;
+      localStorage.removeItem('shoplite_token_secure');
+      localStorage.removeItem('shoplite_user_secure');
+      updateAuthUI();
+      logOutput('Logged out.');
+    }
+
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products');
+        const products = await res.json();
+        const container = document.getElementById('product-list');
+        container.innerHTML = products.map(p => `
+          <div class="product-card">
+            <img class="product-img" src="${p.image_url || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500'}" alt="${p.name}">
+            <div class="product-info">
+              <span class="product-cat">${p.category || 'General'}</span>
+              <div class="product-name">${p.name}</div>
+              <div class="product-desc">${p.description || ''}</div>
+              <div class="product-meta">
+                <span class="product-price">$${Number(p.price).toFixed(2)}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">${p.stock} in stock</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading products:', err);
+      }
+    }
+
+    async function fetchOrders() {
+      if (!currentToken) return;
+      try {
+        const res = await fetch('/api/orders', {
+          headers: {'Authorization': `Bearer ${currentToken}`}
+        });
+        const orders = await res.json();
+        const tbody = document.getElementById('orders-tbody');
+        if (!orders.length) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No orders found for this user account.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = orders.map(o => `
+          <tr>
+            <td><strong>#${o.id}</strong></td>
+            <td>${o.title}</td>
+            <td><span class="badge badge-secure">${o.status}</span></td>
+            <td>$${Number(o.amount).toFixed(2)}</td>
+            <td><code>${o.tracking_number || 'N/A'}</code></td>
+            <td style="color: var(--text-muted);">${o.shipping_address || 'N/A'}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading orders:', err);
+      }
+    }
+
+    function logOutput(msg, data = null) {
+      const panel = document.getElementById('sandbox-output');
+      let text = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+      if (data) {
+        text += JSON.stringify(data, null, 2);
+      }
+      panel.textContent = text;
+    }
+
+    async function testOrderBOLA() {
+      if (!currentToken) { alert('Please log in first!'); return; }
+      const orderId = document.getElementById('bola-order-id').value;
+      const res = await fetch(`/api/orders/${orderId}`, {
+        headers: {'Authorization': `Bearer ${currentToken}`}
+      });
+      const data = await res.json();
+      const statusNote = res.status === 404 ? ' [✓ SECURE: 404 Not Found - Access Denied & Existence Hidden]' : '';
+      logOutput(`HTTP ${res.status} for GET /api/orders/${orderId}${statusNote}`, data);
+    }
+
+    async function testQueryParamBOLA() {
+      if (!currentToken) { alert('Please log in first!'); return; }
+      const uid = document.getElementById('qp-user-id').value;
+      const res = await fetch(`/api/orders?user_id=${uid}`, {
+        headers: {'Authorization': `Bearer ${currentToken}`}
+      });
+      const data = await res.json();
+      logOutput(`HTTP ${res.status} for GET /api/orders?user_id=${uid} (Only shows logged-in user's orders)`, data);
+    }
+
+    async function testAdminPrivilege() {
+      if (!currentToken) { alert('Please log in first!'); return; }
+      const res = await fetch('/api/admin/reports', {
+        headers: {'Authorization': `Bearer ${currentToken}`}
+      });
+      const data = await res.json();
+      const statusNote = res.status === 404 ? ' [✓ SECURE: 404 Not Found - Admin Privileges Required]' : '';
+      logOutput(`HTTP ${res.status} for GET /api/admin/reports${statusNote}`, data);
+    }
+
+    async function testAdminUsers() {
+      if (!currentToken) { alert('Please log in first!'); return; }
+      const res = await fetch('/api/admin/users', {
+        headers: {'Authorization': `Bearer ${currentToken}`}
+      });
+      const data = await res.json();
+      const statusNote = res.status === 404 ? ' [✓ SECURE: 404 Not Found - Admin Privileges Required]' : '';
+      logOutput(`HTTP ${res.status} for GET /api/admin/users${statusNote}`, data);
+    }
+
+    // Initialize
+    loadProducts();
+    updateAuthUI();
+  </script>
+</body>
+</html>
