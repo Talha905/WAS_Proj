@@ -13,6 +13,7 @@ import logging
 import sys
 import threading
 import queue
+import inspect
 import concurrent.futures
 from pathlib import Path
 from datetime import datetime, timezone
@@ -414,13 +415,16 @@ class Scanner:
 
         kwargs = extra_kwargs or {}
         try:
+            sig = inspect.signature(module_fn)
+            accepts_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
+            call_kwargs = kwargs if accepts_var_kw else {k: v for k, v in kwargs.items() if k in sig.parameters}
             check_results = module_fn(
                 endpoint,
                 self.target_url,
                 self.auth_manager,
                 self.config,
                 self.known_ids,
-                **kwargs,
+                **call_kwargs,
             )
         except Exception as exc:
             logger.warning(

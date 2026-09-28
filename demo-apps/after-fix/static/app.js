@@ -1,0 +1,225 @@
+/**
+ * ShopLite Shared UI - Main App Orchestrator
+ * Controls session management, role switching, tab routing, and telemetry drawer.
+ */
+
+const App = {
+  activeTab: 'store',
+
+  async init() {
+    this.setupNavigation();
+    this.setupSessionBar();
+    this.setupTelemetryDrawer();
+
+    // Verify existing token if stored
+    if (Api.token) {
+      try {
+        const res = await Api.getMe();
+        if (res.ok && res.data) {
+          Api.setSession(Api.token, res.data);
+        } else {
+          Api.clearSession();
+        }
+      } catch (e) {
+        Api.clearSession();
+      }
+    }
+
+    this.updateSessionUI();
+
+    // Initialize all domain modules
+    if (window.StoreModule) await window.StoreModule.init();
+    if (window.OrdersModule) await window.OrdersModule.init();
+    if (window.ProfileModule) await window.ProfileModule.init();
+    if (window.AdminModule) await window.AdminModule.init();
+    if (window.LabModule) await window.LabModule.init();
+
+    // Handle URL hash routing if present
+    const hash = window.location.hash.replace('#', '');
+    if (['store', 'orders', 'profile', 'admin', 'lab'].includes(hash)) {
+      this.switchTab(hash);
+    } else {
+      this.switchTab('store');
+    }
+  },
+
+  setupNavigation() {
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const targetTab = tab.getAttribute('data-tab');
+        if (targetTab) {
+          this.switchTab(targetTab);
+        }
+      });
+    });
+  },
+
+  switchTab(tabId) {
+    this.activeTab = tabId;
+    window.location.hash = tabId;
+
+    // Update active class on nav tabs
+    document.querySelectorAll('.nav-tab').forEach(t => {
+      if (t.getAttribute('data-tab') === tabId) {
+        t.classList.add('active');
+      } else {
+        t.classList.remove('active');
+      }
+    });
+
+    // Update visible view containers
+    document.querySelectorAll('.tab-view').forEach(v => {
+      if (v.id === `view-${tabId}`) {
+        v.style.display = 'block';
+      } else {
+        v.style.display = 'none';
+      }
+    });
+
+    // Refresh active module data
+    if (tabId === 'orders' && window.OrdersModule) {
+      window.OrdersModule.loadOrders();
+    } else if (tabId === 'admin' && window.AdminModule) {
+      window.AdminModule.loadAdminData();
+    } else if (tabId === 'profile' && window.ProfileModule) {
+      const targetId = Api.user ? Api.user.id : 1;
+      window.ProfileModule.loadProfile(targetId);
+    }
+  },
+
+  setupSessionBar() {
+    const copyBtn = document.getElementById('btn-copy-token');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => this.copyToken());
+    }
+
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => this.logout());
+    }
+  },
+
+  async quickLogin(username, password) {
+    try {
+      const res = await Api.login(username, password);
+      if (res.ok && res.data.token) {
+        Api.setSession(res.data.token, null);
+        const meRes = await Api.getMe();
+        if (meRes.ok && meRes.data) {
+          Api.setSession(res.data.token, meRes.data);
+          showToast(`Logged in as ${username.toUpperCase()}`, 'success');
+          this.updateSessionUI();
+
+          // Refresh current view
+          this.switchTab(this.activeTab);
+        }
+      } else {
+        showToast(`Login failed: ${res.data.error || 'Invalid credentials'}`, 'error');
+      }
+    } catch (err) {
+      console.error('Quick login error:', err);
+      showToast('Network error logging in', 'error');
+    }
+  },
+
+  logout() {
+    Api.clearSession();
+    this.updateSessionUI();
+    showToast('Logged out of session', 'info');
+    this.switchTab(this.activeTab);
+  },
+
+  updateSessionUI() {
+    const userDisplay = document.getElementById('user-session-text');
+    const tokenDisplay = document.getElementById('active-token-text');
+    const logoutBtn = document.getElementById('btn-logout');
+    const tokenBox = document.getElementById('token-bar-container');
+
+    if (Api.token && Api.user) {
+      if (userDisplay) {
+        userDisplay.innerHTML = `
+          <span class="user-pill ${Api.user.role === 'admin' ? 'pill-admin' : 'pill-user'}">
+            👤 ${escapeHtml(Api.user.username.toUpperCase())}
+          </span>
+          <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 6px;">
+            ID #${Number(Api.user.id)} (${escapeHtml(Api.user.role)})
+          </span>
+        `;
+      }
+      if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+      if (tokenBox) tokenBox.style.display = 'flex';
+      if (tokenDisplay) tokenDisplay.textContent = Api.token;
+    } else {
+      if (userDisplay) {
+        userDisplay.innerHTML = `<span style="color: var(--text-muted); font-size: 0.85rem;">Not Authenticated</span>`;
+      }
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      if (tokenBox) tokenBox.style.display = 'none';
+      if (tokenDisplay) tokenDisplay.textContent = '';
+    }
+  },
+
+  copyToken() {
+    if (!Api.token) return;
+    navigator.clipboard.writeText(Api.token).then(() => {
+      const btn = document.getElementById('btn-copy-token');
+      if (btn) {
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy JWT'; }, 2000);
+      }
+      showToast('JWT copied to clipboard! Paste into WAS Mini Dashboard.', 'success');
+    });
+  },
+
+  setupTelemetryDrawer() {
+    const toggleBtn = document.getElementById('telemetry-toggle-btn');
+    const drawer = document.getElementById('telemetry-drawer');
+    const closeBtn = document.getElementById('telemetry-close-btn');
+
+    if (toggleBtn && drawer) {
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = drawer.style.display === 'none' || drawer.style.display === '';
+        drawer.style.display = isHidden ? 'block' : 'none';
+      });
+    }
+
+    if (closeBtn && drawer) {
+      closeBtn.addEventListener('click', () => {
+        drawer.style.display = 'none';
+      });
+    }
+
+    // Hook API telemetry updates
+    Api.onTelemetryUpdate = (t) => {
+      const badge = document.getElementById('telemetry-status-pill');
+      const urlText = document.getElementById('telemetry-url-text');
+      const timeText = document.getElementById('telemetry-time-text');
+      const content = document.getElementById('telemetry-json-content');
+
+      if (badge) {
+        badge.textContent = `${t.method} ${t.status || 'ERR'}`;
+        badge.className = `status-pill ${t.status >= 200 && t.status < 300 ? 'status-ok' : 'status-err'}`;
+      }
+      if (urlText) urlText.textContent = t.url;
+      if (timeText) timeText.textContent = `${t.durationMs}ms`;
+      if (content) {
+        content.textContent = JSON.stringify({
+          endpoint: t.url,
+          method: t.method,
+          status: t.status,
+          duration: `${t.durationMs}ms`,
+          requestBody: t.requestBody,
+          responseBody: t.responseBody
+        }, null, 2);
+      }
+    };
+  }
+};
+
+window.App = App;
+
+// Bootstrap on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});

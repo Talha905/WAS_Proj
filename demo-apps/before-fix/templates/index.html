@@ -3,315 +3,360 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShopLite Marketplace — Vulnerable Edition</title>
+  <title>ShopLite Marketplace — {{ env_name|default('E-Commerce Demo') }}</title>
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="brand">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
-      </svg>
-      <h1>ShopLite</h1>
-      <span class="badge badge-vuln">Vulnerable (Port 5001)</span>
+
+  <!-- Top Navigation & Role Bar -->
+  <header class="top-navbar">
+    <div class="brand-section">
+      <a href="#store" class="brand-logo" onclick="App.switchTab('store')">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span class="brand-title">ShopLite</span>
+      </a>
+      <span class="env-badge {{ 'env-vuln' if 'vuln' in (env_badge|default('vuln')|lower) else 'env-sec' }}">
+        {{ env_badge|default('Vulnerable') }} :{{ app_port|default('5001') }}
+      </span>
     </div>
-    <div class="user-status">
-      <span id="user-display" style="color: var(--text-muted); font-size: 0.9rem;">Not logged in</span>
-      <button class="btn btn-danger" id="logout-btn" style="display:none;" onclick="logout()">Logout</button>
+
+    <!-- Quick Role Switcher -->
+    <div class="role-quick-bar">
+      <span class="role-quick-label">Switch Identity:</span>
+      <button class="role-btn" onclick="App.quickLogin('alice', 'password123')" title="Alice - Customer #1 (Owns Orders 1 & 2)">
+        👤 Alice
+      </button>
+      <button class="role-btn" onclick="App.quickLogin('bob', 'password123')" title="Bob - Customer #2 (Owns Orders 3 & 4)">
+        👤 Bob
+      </button>
+      <button class="role-btn" onclick="App.quickLogin('admin', 'admin123')" title="System Administrator #3">
+        🛡️ Admin
+      </button>
     </div>
+
+    <!-- Session Display -->
+    <div class="session-controls">
+      <div id="user-session-text">
+        <span style="color: var(--text-muted); font-size: 0.85rem;">Not Authenticated</span>
+      </div>
+      <button class="btn btn-sm btn-danger" id="btn-logout" style="display: none;">
+        Log Out
+      </button>
+    </div>
+  </header>
+
+  <!-- Sub Navigation Tabs (All visible to all users; server enforces access control) -->
+  <nav class="sub-navbar">
+    <button class="nav-tab active" data-tab="store">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+      Marketplace
+    </button>
+    <button class="nav-tab" data-tab="orders">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      My Orders & Invoices
+    </button>
+    <button class="nav-tab" data-tab="profile">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Account Settings
+    </button>
+    <button class="nav-tab" data-tab="admin">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+      Admin Portal
+    </button>
+    <button class="nav-tab" data-tab="lab">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10 2 4 4-2 2 4 4-6 6a4 4 0 0 1-5.66-5.66l6-6-2-2Z"/></svg>
+      Security Lab
+    </button>
   </nav>
 
-  <div class="container">
-    <div class="banner">
-      <h2>Welcome to ShopLite Marketplace</h2>
-      <p>This demo application simulates a multi-tenant e-commerce platform with <strong>intentional object-level authorization vulnerabilities (OWASP API1:2023 BOLA)</strong>.</p>
-      
-      <div style="margin-top: 16px;">
-        <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Quick Switch User Profile:</span>
-        <div class="role-switcher">
-          <button class="btn" onclick="quickLogin('alice', 'password123')">🔑 Alice (User #1 - Owns Orders 1, 2)</button>
-          <button class="btn" onclick="quickLogin('bob', 'password123')">🔑 Bob (User #2 - Owns Orders 3, 4)</button>
-          <button class="btn" onclick="quickLogin('admin', 'admin123')">🛡️ Admin (User #3)</button>
+  <!-- Collapsible Active Token Bar -->
+  <div class="token-bar" id="token-bar-container" style="display: none;">
+    <span style="font-weight: 700; color: #a5b4fc; text-transform: uppercase; font-size: 0.75rem;">
+      🔑 Active JWT:
+    </span>
+    <span class="token-preview" id="active-token-text"></span>
+    <button class="btn btn-sm btn-primary" id="btn-copy-token">
+      📋 Copy JWT
+    </button>
+  </div>
+
+  <!-- Main View Container -->
+  <main class="main-wrapper">
+    
+    <!-- View 1: Marketplace & Storefront -->
+    <section id="view-store" class="tab-view">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Featured Marketplace</h1>
+          <p class="view-subtitle">Browse items, check live stock, and place orders directly to the backend API.</p>
+        </div>
+        <div class="store-filter-bar">
+          <input type="text" id="store-search-input" class="input-field" placeholder="Search catalog..." style="max-width: 240px;">
+          <select id="store-category-filter" class="input-field" style="max-width: 180px;">
+            <option value="all">All Categories</option>
+          </select>
         </div>
       </div>
 
-      <!-- Active JWT Token Banner -->
-      <div id="token-display-box" style="display:none; margin-top: 18px; background: rgba(15, 23, 42, 0.7); border: 1px solid #6366f1; border-radius: 8px; padding: 14px 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span style="font-size: 0.85rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.5px;" id="token-label">
-            🔑 Active JWT Bearer Token:
-          </span>
-          <button class="btn btn-primary" style="font-size: 0.8rem; padding: 4px 12px;" onclick="copyCurrentToken()" id="copy-token-text">
-            📋 Copy Token
+      <div class="products-grid" id="products-grid">
+        <div class="spinner" style="margin: 40px auto; grid-column: 1 / -1;"></div>
+      </div>
+    </section>
+
+    <!-- View 2: Orders & Invoices -->
+    <section id="view-orders" class="tab-view" style="display: none;">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Orders & Commercial Invoices</h1>
+          <p class="view-subtitle">Authenticated tenant orders retrieved from <code>GET /api/orders</code>.</p>
+        </div>
+        <div>
+          <button class="btn btn-outline" id="orders-refresh-btn">🔄 Refresh Orders</button>
+        </div>
+      </div>
+
+      <div class="card" style="overflow-x: auto; padding: 0;">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Amount</th>
+              <th>Tracking #</th>
+              <th>Shipping Destination</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <!-- Dynamically populated by orders.js -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- View 3: Profile & Account Settings -->
+    <section id="view-profile" class="tab-view" style="display: none;">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Account Profile Settings</h1>
+          <p class="view-subtitle">Private user profile details managed via <code>GET /api/users/{id}</code> and <code>PUT /api/users/{id}</code>.</p>
+        </div>
+        <div>
+          <button class="btn btn-outline" id="profile-reload-btn">🔄 Reload Profile</button>
+        </div>
+      </div>
+
+      <div id="profile-container">
+        <!-- Dynamically populated by profile.js -->
+      </div>
+    </section>
+
+    <!-- View 4: Admin Portal -->
+    <section id="view-admin" class="tab-view" style="display: none;">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Executive Administration Portal</h1>
+          <p class="view-subtitle">High-privilege reporting and user management (<code>/api/admin/reports</code> & <code>/api/admin/users</code>).</p>
+        </div>
+        <div>
+          <button class="btn btn-outline" id="admin-refresh-btn">🔄 Refresh Metrics</button>
+        </div>
+      </div>
+
+      <div id="admin-content-area">
+        <!-- Dynamically populated by admin.js -->
+      </div>
+    </section>
+
+    <!-- View 5: Security Lab -->
+    <section id="view-lab" class="tab-view" style="display: none;">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Security Lab & Vulnerability Inspector</h1>
+          <p class="view-subtitle">Test and visualize BOLA (API1:2023), BFLA (API5:2023), and Mass Assignment (API3:2023).</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+        <!-- Card 1: BOLA Object Inspector -->
+        <div class="card">
+          <h3 style="margin-top: 0; font-size: 1.15rem; color: #818cf8; display: flex; align-items: center; gap: 8px;">
+            <span>🔬 Cross-Tenant BOLA Inspector</span>
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+            Attempt to fetch resources owned by another tenant under your current session token.
+          </p>
+
+          <div class="form-row" style="margin-bottom: 12px;">
+            <div style="flex: 1;">
+              <label class="form-label" for="lab-bola-type">Resource Type</label>
+              <select id="lab-bola-type" class="input-field">
+                <option value="order">Order (GET /api/orders/{id})</option>
+                <option value="user">User Profile (GET /api/users/{id})</option>
+              </select>
+            </div>
+            <div style="width: 110px;">
+              <label class="form-label" for="lab-bola-id">Object ID</label>
+              <input type="number" id="lab-bola-id" class="input-field" value="1">
+            </div>
+          </div>
+
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 16px;">
+            💡 <em>Hint: Order #1 & #2 belong to Alice (ID 1). Order #3 & #4 belong to Bob (ID 2).</em>
+          </div>
+
+          <button class="btn btn-primary btn-block" id="lab-run-bola-btn">
+            🚀 Test Access as Current User
           </button>
+
+          <div id="lab-bola-result" style="margin-top: 18px;"></div>
         </div>
-        <div style="font-family: monospace; font-size: 0.8rem; color: #38bdf8; background: #0f172a; padding: 10px 12px; border-radius: 6px; word-break: break-all; max-height: 80px; overflow-y: auto; border: 1px solid #1e293b;" id="token-raw">
-        </div>
-        <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 6px; margin-bottom: 0;">
-          💡 Click <strong>Copy Token</strong> and paste this into the <strong>WAS Mini Dashboard</strong> (New Scan -> Authentication Roles).
-        </p>
-      </div>
-    </div>
 
-    <!-- Product Catalog -->
-    <div class="section-title">
-      <span>Featured Products</span>
-      <span style="font-size: 0.85rem; color: var(--text-muted);">Public Endpoint: GET /api/products</span>
-    </div>
-    <div class="product-grid" id="product-list">
-      <!-- Injected via JS -->
-    </div>
+        <!-- Card 2: Raw Payload & Mass Assignment Panel -->
+        <div class="card">
+          <h3 style="margin-top: 0; font-size: 1.15rem; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+            <span>⚡ Raw Payload & Parameter Tampering</span>
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+            Send crafted HTTP requests to test mass assignment or parameter manipulation.
+          </p>
 
-    <!-- User Orders -->
-    <div class="section-title">
-      <span>My Placed Orders</span>
-      <button class="btn" onclick="fetchOrders()">🔄 Refresh Orders</button>
-    </div>
-    <table class="orders-table" id="orders-table-wrapper" style="margin-bottom: 40px;">
-      <thead>
-        <tr>
-          <th>Order ID</th>
-          <th>Item Title</th>
-          <th>Status</th>
-          <th>Amount</th>
-          <th>Tracking #</th>
-          <th>Shipping Address</th>
-        </tr>
-      </thead>
-      <tbody id="orders-tbody">
-        <tr>
-          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
-            Log in as Alice or Bob to view authenticated orders
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- BOLA Educational Sandbox -->
-    <div class="sandbox-box">
-      <h3 style="margin-bottom: 8px;">🔬 Interactive Authorization Playground (GAP Demos)</h3>
-      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
-        Test whether the current logged-in identity can read or access resources belonging to other tenants.
-      </p>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-        <!-- Test 1: Horizontal BOLA -->
-        <div style="background: rgba(15, 23, 42, 0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
-          <strong style="color: #f87171;">GAP 1 & 2: Direct Object Access (BOLA)</strong>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0;">Attempt to fetch any order ID regardless of who owns it.</p>
-          <div class="sandbox-controls">
-            <input class="input-field" type="number" id="bola-order-id" value="3" placeholder="Order ID" style="width: 100px;">
-            <button class="btn btn-primary" onclick="testOrderBOLA()">GET /api/orders/{id}</button>
+          <div class="form-group">
+            <label class="form-label" for="lab-payload-preset">Load Vulnerability Preset</label>
+            <select id="lab-payload-preset" class="input-field">
+              <option value="">-- Choose Test Scenario --</option>
+              <option value="mass-assignment-order">Mass Assignment (Injected user_id in POST /api/orders)</option>
+              <option value="query-bola">Query Parameter BOLA (GET /api/orders?user_id=1)</option>
+              <option value="admin-privilege">Vertical BFLA (GET /api/admin/reports)</option>
+              <option value="user-bola-put">BOLA Modification (PUT /api/users/1)</option>
+            </select>
           </div>
-        </div>
 
-        <!-- Test 2: Query Param BOLA -->
-        <div style="background: rgba(15, 23, 42, 0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
-          <strong style="color: #f87171;">GAP 5: Query Parameter BOLA</strong>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0;">Pass another tenant's user_id in the query string filter.</p>
-          <div class="sandbox-controls">
-            <input class="input-field" type="number" id="qp-user-id" value="2" placeholder="User ID" style="width: 100px;">
-            <button class="btn btn-primary" onclick="testQueryParamBOLA()">GET /api/orders?user_id={id}</button>
+          <div class="form-row" style="margin-bottom: 12px;">
+            <div style="width: 100px;">
+              <label class="form-label" for="lab-raw-method">Method</label>
+              <select id="lab-raw-method" class="input-field">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+            <div style="flex: 1;">
+              <label class="form-label" for="lab-raw-url">Endpoint Path</label>
+              <input type="text" id="lab-raw-url" class="input-field" value="/api/orders">
+            </div>
           </div>
-        </div>
 
-        <!-- Test 3: Vertical Privilege -->
-        <div style="background: rgba(15, 23, 42, 0.4); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
-          <strong style="color: #f87171;">GAP 4: Vertical Privilege Escalation</strong>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 6px 0;">Access admin reports endpoint as a regular user.</p>
-          <div class="sandbox-controls">
-            <button class="btn btn-danger" onclick="testAdminPrivilege()">GET /api/admin/reports</button>
-            <button class="btn btn-danger" onclick="testAdminUsers()">GET /api/admin/users</button>
+          <div class="form-group">
+            <label class="form-label" for="lab-raw-body">Request Body (JSON)</label>
+            <textarea id="lab-raw-body" class="input-field" rows="4" style="font-family: monospace; font-size: 0.8rem;"></textarea>
           </div>
+
+          <button class="btn btn-outline btn-block" id="lab-run-raw-btn">
+            Send Raw Request
+          </button>
+
+          <div id="lab-raw-result" style="margin-top: 18px;"></div>
         </div>
       </div>
+    </section>
 
-      <div class="output-panel" id="sandbox-output">// Response will display here after testing an endpoint above...</div>
+  </main>
+
+  <!-- Checkout Modal (Order Placement) -->
+  <div id="checkout-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="margin: 0; font-size: 1.15rem;">Complete Order</h3>
+        <button class="modal-close" id="checkout-modal-close">&times;</button>
+      </div>
+      <form id="checkout-form">
+        <div class="modal-body">
+          <div style="margin-bottom: 16px;">
+            <div id="checkout-modal-product-title" style="font-size: 1.1rem; font-weight: 700;"></div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              Unit Price: <span id="checkout-modal-unit-price" style="color: var(--text-primary); font-weight: 600;"></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="checkout-quantity">Quantity</label>
+            <input type="number" id="checkout-quantity" class="input-field" min="1" max="10" value="1" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="checkout-shipping-address">Shipping Address</label>
+            <textarea id="checkout-shipping-address" class="input-field" rows="2" required></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <div>
+              <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Total Amount:</span>
+              <span id="checkout-modal-total-price" style="font-size: 1.3rem; font-weight: 800; color: var(--brand-indigo);"></span>
+            </div>
+            <button type="submit" class="btn btn-primary" id="checkout-submit-btn">
+              💳 Confirm & Pay
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 
-  <script>
-    let currentToken = localStorage.getItem('shoplite_token') || '';
-    let currentUser = JSON.parse(localStorage.getItem('shoplite_user') || 'null');
+  <!-- Commercial Invoice Modal -->
+  <div id="invoice-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3 style="margin: 0; font-size: 1.15rem;">Official Commercial Receipt</h3>
+        <div>
+          <button class="btn btn-sm btn-outline" id="invoice-print-btn" style="margin-right: 8px;">🖨️ Print</button>
+          <button class="modal-close" id="invoice-modal-close">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body" id="invoice-content-area">
+        <!-- Dynamically injected by orders.js -->
+      </div>
+    </div>
+  </div>
 
-    function updateAuthUI() {
-      const display = document.getElementById('user-display');
-      const logoutBtn = document.getElementById('logout-btn');
-      const tokenBox = document.getElementById('token-display-box');
-      const tokenRaw = document.getElementById('token-raw');
-      const tokenLabel = document.getElementById('token-label');
+  <!-- Raw Response Telemetry Floating Button & Drawer -->
+  <button class="telemetry-floating-btn" id="telemetry-toggle-btn">
+    <span>⚡ Raw Response</span>
+    <span class="status-pill status-ok" id="telemetry-status-pill">Ready</span>
+  </button>
 
-      if (currentUser && currentToken) {
-        display.innerHTML = `Signed in as <strong>${currentUser.username}</strong> (${currentUser.role}) — ID #${currentUser.id}`;
-        display.style.color = '#38bdf8';
-        logoutBtn.style.display = 'inline-block';
-        if (tokenBox) {
-          tokenBox.style.display = 'block';
-          tokenLabel.textContent = `🔑 Active JWT Bearer Token (${currentUser.username.toUpperCase()}):`;
-          tokenRaw.textContent = currentToken;
-        }
-        fetchOrders();
-      } else {
-        display.textContent = 'Not logged in';
-        display.style.color = 'var(--text-muted)';
-        logoutBtn.style.display = 'none';
-        if (tokenBox) tokenBox.style.display = 'none';
-        document.getElementById('orders-tbody').innerHTML = `
-          <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
-            Log in as Alice or Bob to view authenticated orders
-          </td></tr>
-        `;
-      }
-    }
+  <div class="telemetry-drawer-panel" id="telemetry-drawer">
+    <div class="telemetry-header">
+      <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        <span>Last API Interaction</span>
+        <code id="telemetry-time-text" style="color: #38bdf8; font-size: 0.75rem;">0ms</code>
+      </div>
+      <button class="modal-close" id="telemetry-close-btn" style="font-size: 1rem;">&times;</button>
+    </div>
+    <div style="padding: 10px 14px; background: #0b0f19; font-size: 0.8rem; border-bottom: 1px solid var(--border);" class="truncate">
+      <span style="color: var(--text-muted);">Request:</span> <code id="telemetry-url-text">None</code>
+    </div>
+    <div style="padding: 12px; overflow-y: auto; flex: 1;">
+      <pre class="code-box" id="telemetry-json-content" style="max-height: 260px;">// Perform any action to capture raw HTTP payload...</pre>
+    </div>
+  </div>
 
-    function copyCurrentToken() {
-      if (!currentToken) return;
-      navigator.clipboard.writeText(currentToken);
-      const btn = document.getElementById('copy-token-text');
-      if (btn) btn.textContent = '✅ Copied!';
-      setTimeout(() => {
-        if (btn) btn.textContent = '📋 Copy Token';
-      }, 2000);
-    }
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
 
-    async function quickLogin(username, password) {
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({username, password})
-        });
-        const data = await res.json();
-        if (res.ok) {
-          currentToken = data.token;
-          localStorage.setItem('shoplite_token', data.token);
-          // Fetch current user details via /api/auth/me
-          const meRes = await fetch('/api/auth/me', {
-            headers: {'Authorization': `Bearer ${currentToken}`}
-          });
-          currentUser = await meRes.json();
-          localStorage.setItem('shoplite_user', JSON.stringify(currentUser));
-          updateAuthUI();
-          logOutput(`Successfully logged in as ${username} (ID: ${currentUser.id}, Role: ${currentUser.role})`);
-        } else {
-          alert('Login failed: ' + (data.error || 'Unknown error'));
-        }
-      } catch (err) {
-        alert('Network error connecting to API: ' + err.message);
-      }
-    }
+  <!-- Shared Frontend Scripts -->
+  <script src="/static/util.js"></script>
+  <script src="/static/api.js"></script>
+  <script src="/static/store.js"></script>
+  <script src="/static/orders.js"></script>
+  <script src="/static/profile.js"></script>
+  <script src="/static/admin.js"></script>
+  <script src="/static/lab.js"></script>
+  <script src="/static/app.js"></script>
 
-    function logout() {
-      currentToken = '';
-      currentUser = null;
-      localStorage.removeItem('shoplite_token');
-      localStorage.removeItem('shoplite_user');
-      updateAuthUI();
-      logOutput('Logged out.');
-    }
-
-    async function loadProducts() {
-      try {
-        const res = await fetch('/api/products');
-        const products = await res.json();
-        const container = document.getElementById('product-list');
-        container.innerHTML = products.map(p => `
-          <div class="product-card">
-            <img class="product-img" src="${p.image_url || 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=500'}" alt="${p.name}">
-            <div class="product-info">
-              <span class="product-cat">${p.category || 'General'}</span>
-              <div class="product-name">${p.name}</div>
-              <div class="product-desc">${p.description || ''}</div>
-              <div class="product-meta">
-                <span class="product-price">$${Number(p.price).toFixed(2)}</span>
-                <span style="font-size: 0.8rem; color: var(--text-muted);">${p.stock} in stock</span>
-              </div>
-            </div>
-          </div>
-        `).join('');
-      } catch (err) {
-        console.error('Error loading products:', err);
-      }
-    }
-
-    async function fetchOrders() {
-      if (!currentToken) return;
-      try {
-        const res = await fetch('/api/orders', {
-          headers: {'Authorization': `Bearer ${currentToken}`}
-        });
-        const orders = await res.json();
-        const tbody = document.getElementById('orders-tbody');
-        if (!orders.length) {
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No orders found for this user account.</td></tr>`;
-          return;
-        }
-        tbody.innerHTML = orders.map(o => `
-          <tr>
-            <td><strong>#${o.id}</strong></td>
-            <td>${o.title}</td>
-            <td><span class="badge ${o.status === 'delivered' ? 'badge-secure' : 'badge-vuln'}">${o.status}</span></td>
-            <td>$${Number(o.amount).toFixed(2)}</td>
-            <td><code>${o.tracking_number || 'N/A'}</code></td>
-            <td style="color: var(--text-muted);">${o.shipping_address || 'N/A'}</td>
-          </tr>
-        `).join('');
-      } catch (err) {
-        console.error('Error loading orders:', err);
-      }
-    }
-
-    function logOutput(msg, data = null) {
-      const panel = document.getElementById('sandbox-output');
-      let text = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-      if (data) {
-        text += JSON.stringify(data, null, 2);
-      }
-      panel.textContent = text;
-    }
-
-    async function testOrderBOLA() {
-      if (!currentToken) { alert('Please log in first!'); return; }
-      const orderId = document.getElementById('bola-order-id').value;
-      const res = await fetch(`/api/orders/${orderId}`, {
-        headers: {'Authorization': `Bearer ${currentToken}`}
-      });
-      const data = await res.json();
-      const isBreach = res.ok && data.user_id !== currentUser.id;
-      logOutput(`HTTP ${res.status} for GET /api/orders/${orderId}${isBreach ? ' [! BOLA DETECTED: Accessed order belonging to User #' + data.user_id + ']' : ''}`, data);
-    }
-
-    async function testQueryParamBOLA() {
-      if (!currentToken) { alert('Please log in first!'); return; }
-      const uid = document.getElementById('qp-user-id').value;
-      const res = await fetch(`/api/orders?user_id=${uid}`, {
-        headers: {'Authorization': `Bearer ${currentToken}`}
-      });
-      const data = await res.json();
-      logOutput(`HTTP ${res.status} for GET /api/orders?user_id=${uid}`, data);
-    }
-
-    async function testAdminPrivilege() {
-      if (!currentToken) { alert('Please log in first!'); return; }
-      const res = await fetch('/api/admin/reports', {
-        headers: {'Authorization': `Bearer ${currentToken}`}
-      });
-      const data = await res.json();
-      logOutput(`HTTP ${res.status} for GET /api/admin/reports`, data);
-    }
-
-    async function testAdminUsers() {
-      if (!currentToken) { alert('Please log in first!'); return; }
-      const res = await fetch('/api/admin/users', {
-        headers: {'Authorization': `Bearer ${currentToken}`}
-      });
-      const data = await res.json();
-      logOutput(`HTTP ${res.status} for GET /api/admin/users`, data);
-    }
-
-    // Initialize
-    loadProducts();
-    updateAuthUI();
-  </script>
 </body>
 </html>

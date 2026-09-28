@@ -37,6 +37,7 @@ All aspects of the project are documented in dedicated guides in the repository 
 │   Flask REST API  │  Scan Depth Config  │  Autonomous Lifecycle Engine      │
 │   Differential Analyzer (Jaccard Tree)  │  ACM Builder & Anomaly Detector   │
 │   PoE Script Generator                  │  10 OWASP API Check Modules       │
+│   Dynamic Signature Kwarg Router        │  PDF & Word Report Generators     │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │ Probing & Comparative Testing
                        ┌───────────────┴───────────────┐
@@ -46,7 +47,13 @@ All aspects of the project are documented in dedicated guides in the repository 
        │   (port 5001)                 │   │    (port 5002)                │
        │   "ShopLite" Marketplace      │   │    "ShopLite" Secure Edition  │
        │   Vulnerable: 5 BOLA/BFLA gaps│   │    Hardened: 100% Gated       │
-       │   Interactive Storefront UI   │   │    Interactive Storefront UI  │
+       │   Multi-View Interactive UI:  │   │    Multi-View Interactive UI: │
+       │   - Storefront & Checkout     │   │   - Storefront & Checkout     │
+       │   - Orders & Invoice Receipts │   │   - Orders & Invoice Receipts │
+       │   - Account Profile Editor    │   │   - Account Profile Editor    │
+       │   - Admin Executive Portal    │   │   - Admin Executive Portal    │
+       │   - In-App Security Lab       │   │   - In-App Security Lab       │
+       │   - Raw Telemetry Drawer      │   │   - Raw Telemetry Drawer      │
        └───────────────────────────────┘   └───────────────────────────────┘
 ```
 
@@ -86,7 +93,7 @@ Unlike naive probes that simply check `if status_code == 200`, WAS Mini uses a 4
 
 ## 🚀 Quick Start Guide
 
-### 1. Start Services Across 4 Terminals
+### 1. Launch Services (4 Terminals)
 
 ```powershell
 # Terminal 1: Vulnerable Demo App (port 5001)
@@ -106,7 +113,16 @@ cd dashboard
 npm run dev
 ```
 
-### 2. Run a Demonstration Scan
+### 2. Reset or Smoke Test Demo Apps
+```powershell
+# Reset SQLite databases for both demo apps to baseline fixtures:
+python demo-apps/reset_demo_data.py
+
+# Run automated backend contrast, XSS escaping, and OpenAPI contract smoke tests:
+python demo-apps/smoke_test.py
+```
+
+### 3. Run a Demonstration Scan
 1. Open your browser to **`http://localhost:3000/new`**.
 2. Target: `http://localhost:5001`.
 3. Depth: **⚡ Quick (~15-25 req)**.
@@ -121,7 +137,7 @@ npm run dev
 
 - **Checker Engine**: Python 3.10+, Flask 3.0, Requests, SQLite3, ReportLab (PDF), python-docx (Word), PyYAML.
 - **Dashboard UI**: React 18, Vite, Tailwind CSS, Lucide React icons, Recharts, Server-Sent Events (SSE).
-- **Demo Applications**: Flask, Flask-JWT-Extended, Flask-Bcrypt, Flask-Limiter, Flask-CORS, SQLite3.
+- **Demo Applications**: Flask, Flask-JWT-Extended, Flask-Bcrypt, Flask-Limiter, Flask-CORS, SQLite3, Shared Multi-View UI (`demo-apps/shared-ui`).
 
 ---
 

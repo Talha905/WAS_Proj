@@ -79,7 +79,13 @@ The platform consists of three decoupled layers:
     |    Before-Fix Demo (Port 5001)   |       |    After-Fix Demo (Port 5002)     |
     | - Intentional BOLA / BFLA gaps   |       | - Strict resource ownership checks|
     | - Mass Assignment in orders/auth |       | - Role-based function decorators  |
-    | - Interactive Storefront UI      |       | - Param validation & sanitization |
+    | - Shared Multi-View Modern UI:   |       | - Shared Multi-View Modern UI:    |
+    |   * Storefront & Checkout Modal  |       |   * Storefront & Checkout Modal   |
+    |   * Orders & Commercial Invoices |       |   * Orders & Commercial Invoices  |
+    |   * Account Profile Editor       |       |   * Account Profile Editor        |
+    |   * Executive Admin Portal       |       |   * Executive Admin Portal        |
+    |   * In-App Security Lab & Diff   |       |   * In-App Security Lab & Diff    |
+    |   * Live HTTP Telemetry Drawer   |       |   * Live HTTP Telemetry Drawer    |
     +----------------------------------+       +-----------------------------------+
 ```
 
@@ -172,23 +178,37 @@ WAS Mini includes 10 check modules (`checker/engine/check_modules.py`):
 
 ## 6. Target Demonstration Environments
 
-To prove detection accuracy and verify remediation, two demo applications are included in `demo-apps/`:
+To prove detection accuracy and verify remediation, two demo applications are included in `demo-apps/`, powered by a modular shared frontend (`demo-apps/shared-ui`):
+
+### Shared Multi-View Application Structure
+Both applications run an identical, offline-resilient web frontend so viewers can observe how identical user interactions produce completely different security behaviors on the wire:
+1. **Marketplace & Live Checkout (`/api/products`, `POST /api/orders`)**: Interactive catalog with real-time stock levels and an interactive modal to place orders.
+2. **Orders & Commercial Invoices (`/api/orders`, `GET /api/orders/{id}`)**: Itemized order management with printable commercial receipts exposing tenant ownership context.
+3. **Account Profile Settings (`/api/users/{id}`, `PUT /api/users/{id}`)**: Profile card and live form editor allowing testing of cross-tenant profile tampering.
+4. **Executive Administration Portal (`/api/admin/reports`, `/api/admin/users`)**: High-privilege metrics dashboard and customer directory with account revocation actions.
+5. **Security Lab & Vulnerability Inspector**: In-app testbed with one-click presets for BOLA, BFLA, and Mass Assignment, paired with a floating **⚡ Raw Response Telemetry Drawer** capturing status codes, payloads, and network latencies.
 
 ### 1. Before-Fix Target (`localhost:5001`) — Vulnerable E-Commerce API
 - **Gaps**:
-  - `GET/PUT/DELETE /api/orders/{id}`: Missing ownership check (Horizontal BOLA).
+  - `GET/PUT/DELETE /api/orders/{id}`: Missing ownership check (Horizontal BOLA on invoices).
+  - `GET/PUT /api/users/{id}`: Missing ownership check (Horizontal BOLA on profile data).
   - `GET /api/orders?user_id=X`: Query parameter overrides identity (Query Param BOLA).
-  - `GET /api/admin/*`: Decorated with `@jwt_required()`, but missing role validation (BFLA).
+  - `GET /api/admin/*`: Decorated with `@jwt_required()`, but missing role validation (BFLA allows regular users into the executive console).
   - `POST /api/orders`: Reads `user_id` from body without validating against JWT identity (Mass Assignment).
 - **Resulting Policy Score**: **~35 / 100 (Grade F - Critical Policy Breaches)**
 
 ### 2. After-Fix Target (`localhost:5002`) — Hardened API
 - **Fixes**:
   - Validates `order.user_id == current_user_id`, returning `404 Not Found` to prevent existence leakage.
-  - Forces `user_id = get_jwt_identity()`, ignoring client-supplied query parameters.
-  - Implements `@require_admin` decorator that inspects token claims and rejects non-admin users.
-  - Strict input allowlists on all POST/PUT routes.
+  - Validates `user_id == current_user_id` on user profile routes, blocking cross-tenant tampering.
+  - Forces `user_id = get_jwt_identity()`, strictly ignoring client-supplied query parameters and payload identities.
+  - Implements `@require_admin` decorator that inspects token claims and rejects non-admin users with an explicit access barrier.
 - **Resulting Policy Score**: **~95 – 100 / 100 (Grade A - Strong Authorization Policy)**
+
+### 3. Automated Regression & Fixture Management Tooling
+- **`reset_demo_data.py`**: Re-initializes and seeds SQLite databases to their clean baseline state (Alice=1, Bob=2, Admin=3).
+- **`smoke_test.py`**: Automated validation suite asserting BOLA/BFLA contrast between before-fix and after-fix, verified XSS escaping hygiene, and OpenAPI integrity.
+- **`sync_ui.py`**: Synchronizes the shared UI into both apps, ensuring single-source-of-truth maintenance.
 
 ---
 

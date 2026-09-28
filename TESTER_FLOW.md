@@ -184,6 +184,7 @@ for each Endpoint:
     └─────────────────────────────────────────────────────┘
 
     After each module:
+      → Introspect module signature with `inspect.signature` to dynamically pass accepted kwargs (`depth`, `diff_analyzer`, `lifecycle_engine`)
       → Save results to SQLite
       → Emit SSE event (if verdict is NEEDS_FIX or INCONCLUSIVE)
       → Update completed_checks counter in DB

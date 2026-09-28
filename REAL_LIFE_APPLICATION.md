@@ -93,6 +93,11 @@ One of the greatest challenges for software developers is fixing an authorizatio
 2. Developers can copy this script directly from the dashboard with one click.
 3. The script can be committed to the application's native test suite (e.g., `tests/security/test_bola_regressions.py`) as a permanent integration test.
 
+### Automated Baseline Fixture Management & Smoke Testing:
+In continuous integration pipelines, database state drift can cause false positives or break test repeatability:
+- **`reset_demo_data.py`**: Automates re-seeding the relational database to a known baseline (Alice=1, Bob=2, Admin=3) before every pipeline test, guaranteeing clean fixtures.
+- **`smoke_test.py`**: Acts as an automated sanity and regression checker, verifying that security barriers on protected targets return HTTP 404/403 while confirming that vulnerable targets remain properly configured for verification.
+
 ---
 
 ## 7. Comparative Analysis: WAS Mini vs. Industry Tooling

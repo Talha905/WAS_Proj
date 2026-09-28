@@ -45,12 +45,17 @@ Both demo apps come with pre-seeded SQLite databases (`instance/app.db`). If you
 
 ```powershell
 cd c:\Users\thele\OneDrive\Desktop\WAS_Mini
-python scratch/seed_all.py
+python demo-apps/reset_demo_data.py
 ```
 > **Default Test Accounts Seeded**:
-> - **Alice** (`user_id = 1`): `alice` / `password123` (Orders #1, #2)
-> - **Bob** (`user_id = 2`): `bob` / `password123` (Orders #3, #4)
+> - **Alice** (`user_id = 1`): `alice` / `password123` (Orders #1, #2 | Products #1, #2)
+> - **Bob** (`user_id = 2`): `bob` / `password123` (Orders #3, #4 | Products #3, #4)
 > - **Admin** (`user_id = 3`): `admin` / `admin123` (Administrative Role)
+
+You can also run the automated smoke test suite to verify baseline functionality and security contrasts:
+```powershell
+python demo-apps/smoke_test.py
+```
 
 ---
 
@@ -100,8 +105,9 @@ WAS Mini requires valid JWT Bearer tokens for each tested role. You can obtain t
 
 ### Method A: One-Click Storefront Login (Easiest)
 1. Open your browser and navigate to **`http://localhost:5001`** (for vulnerable app) or **`http://localhost:5002`** (for secure app).
-2. Under the **Quick Login** banner at the top, click **Alice**, **Bob**, or **Admin**.
-3. A modal appears displaying the full JWT Bearer token. Click **"Copy Token"**.
+2. In the top navigation bar, under **"Switch Identity"**, click **Alice**, **Bob**, or **Admin**.
+3. The active session pill updates, and the **Active JWT Bar** appears displaying your Bearer token.
+4. Click **"Copy JWT"** to copy the token directly to your clipboard for pasting into the Scanner.
 
 ### Method B: REST API Login via cURL
 ```powershell
@@ -235,6 +241,35 @@ To impress evaluators or examiners, follow this 5-minute comparative demonstrati
    curl -X GET "http://localhost:5002/api/orders/3" -H "Authorization: Bearer <Alice_Token>" -i
    ```
    **Result**: HTTP `404 Not Found` — The hardened server denies access and hides resource existence, completely mitigating BOLA!
+ 
+---
+
+### Part 3: Interactive In-Browser Demonstration (Zero Terminal Commands Required)
+You can also demonstrate all authorization vulnerabilities directly within the ShopLite web UI without touching a terminal:
+
+1. **Demonstrating BOLA on Invoices**:
+   - Navigate to `http://localhost:5001`.
+   - Click **Bob** to log in as Customer #2.
+   - Click the **"Security Lab"** tab in the navigation bar.
+   - Under **Cross-Tenant BOLA Inspector**, select `Order` and enter Object ID `1` (owned by Alice).
+   - Click **"Test Access as Current User"**.
+   - **On Port 5001**: A red alert banner confirms the BOLA leak, displaying Alice's private invoice, shipping address, and tracking number directly on Bob's screen!
+   - Repeat the exact same test on `http://localhost:5002` (Secured App): The system immediately displays a green **"ACCESS SAFELY DENIED (HTTP 404)"** alert.
+
+2. **Demonstrating Vertical Privilege Escalation (BFLA)**:
+   - On `http://localhost:5001`, while still logged in as **Bob** (regular user), click the **"Admin Portal"** tab.
+   - **On Port 5001**: Bob gains unrestricted access to the executive metrics dashboard (total revenue, order counts) and the user database with user deletion actions!
+   - Now switch to `http://localhost:5002` and click **"Admin Portal"** as Bob: An **"Access Denied (HTTP 404): Administrator Credentials Required"** barrier blocks access completely.
+   - Click **Admin** on Port 5002: The admin dashboard unlocks legitimately.
+
+3. **Demonstrating Mass Assignment**:
+   - In the **Security Lab** tab, select the preset **"Mass Assignment (Injected user_id in POST /api/orders)"**.
+   - Click **"Send Raw Request"**.
+   - **On Port 5001**: The order is created and attributed to User #1 (Alice) instead of Bob.
+   - **On Port 5002**: The server ignores the injected `user_id` and binds ownership strictly to the token identity.
+
+4. **Live HTTP Telemetry**:
+   - Click the floating **"⚡ Raw Response"** button in the bottom right corner of the screen at any time to open the live telemetry drawer, showing the exact HTTP method, response code, round-trip latency, and formatted JSON payload.
 
 ---
 

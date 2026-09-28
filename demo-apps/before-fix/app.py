@@ -38,7 +38,7 @@ def create_app():
 
     @app.route('/')
     def index():
-        return render_template('index.html')
+        return render_template('index.html', env_name='Vulnerable Edition (Port 5001)', env_badge='Vulnerable', app_port=app.config.get('PORT', 5001))
 
     @app.errorhandler(404)
     def not_found_error(error):

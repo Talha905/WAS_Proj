@@ -38,7 +38,7 @@ def create_app():
 
     @app.route('/')
     def index():
-        return render_template('index.html')
+        return render_template('index.html', env_name='Secured Edition (Port 5002)', env_badge='Secured', app_port=app.config.get('PORT', 5002))
 
     @app.errorhandler(404)
     def not_found_error(error):
