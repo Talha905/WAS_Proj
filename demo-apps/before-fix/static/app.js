@@ -36,7 +36,8 @@ const App = {
 
     // Handle URL hash routing if present
     const hash = window.location.hash.replace('#', '');
-    if (['store', 'orders', 'profile', 'admin', 'lab'].includes(hash)) {
+    const isAdmin = Boolean(Api.user && Api.user.role === 'admin');
+    if (['store', 'orders', 'profile', 'lab'].includes(hash) || (hash === 'admin' && isAdmin)) {
       this.switchTab(hash);
     } else {
       this.switchTab('store');
@@ -56,6 +57,15 @@ const App = {
   },
 
   switchTab(tabId) {
+    // Restrict admin portal to users with admin role only
+    if (tabId === 'admin') {
+      const isAdmin = Boolean(Api.user && Api.user.role === 'admin');
+      if (!isAdmin) {
+        showToast('Admin Portal is restricted to administrator accounts.', 'warning');
+        tabId = 'store';
+      }
+    }
+
     this.activeTab = tabId;
     window.location.hash = tabId;
 
@@ -135,11 +145,23 @@ const App = {
     const tokenDisplay = document.getElementById('active-token-text');
     const logoutBtn = document.getElementById('btn-logout');
     const tokenBox = document.getElementById('token-bar-container');
+    const adminTab = document.getElementById('nav-tab-admin') || document.querySelector('.nav-tab[data-tab="admin"]');
+
+    const isAdmin = Boolean(Api.token && Api.user && Api.user.role === 'admin');
+
+    if (adminTab) {
+      adminTab.style.display = isAdmin ? 'inline-flex' : 'none';
+    }
+
+    // If currently on admin tab but logged-in user is not admin, redirect to store
+    if (this.activeTab === 'admin' && !isAdmin) {
+      this.switchTab('store');
+    }
 
     if (Api.token && Api.user) {
       if (userDisplay) {
         userDisplay.innerHTML = `
-          <span class="user-pill ${Api.user.role === 'admin' ? 'pill-admin' : 'pill-user'}">
+          <span class="user-pill ${isAdmin ? 'pill-admin' : 'pill-user'}">
             👤 ${escapeHtml(Api.user.username.toUpperCase())}
           </span>
           <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 6px;">

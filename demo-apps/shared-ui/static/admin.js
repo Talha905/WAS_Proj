@@ -9,7 +9,6 @@ const AdminModule = {
 
   async init() {
     this.setupListeners();
-    await this.loadAdminData();
   },
 
   setupListeners() {

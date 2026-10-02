@@ -16,6 +16,7 @@ All aspects of the project are documented in dedicated guides in the repository 
 | [**`VULNERABILITY_CATALOG.md`**](file:///c:/Users/thele/OneDrive/Desktop/WAS_Mini/VULNERABILITY_CATALOG.md) | **Vulnerability reference**: Deep breakdown of all 10 detected flaw classes, with vulnerable vs secure code examples and UI verification instructions. |
 | [**`TESTER_FLOW.md`**](file:///c:/Users/thele/OneDrive/Desktop/WAS_Mini/TESTER_FLOW.md) | **Engine internal data flow**: Low-level code walkthrough from endpoint discovery through differential comparison and SSE streaming. |
 | [**`VULNERABILITY_ANALYSIS.md`**](file:///c:/Users/thele/OneDrive/Desktop/WAS_Mini/VULNERABILITY_ANALYSIS.md) | **Code-level gap analysis**: Line-by-line comparison between `before-fix` and `after-fix` demo application blueprints. |
+| [**`PRESENTATION_SCRIPT.md`**](file:///c:/Users/thele/OneDrive/Desktop/WAS_Mini/PRESENTATION_SCRIPT.md) | **Academic presentation & demo script**: Word-for-word walkthrough with synchronized screen and action cues for live demonstrations. |
 
 ---
 
