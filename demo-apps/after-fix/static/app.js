@@ -108,6 +108,50 @@ const App = {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => this.logout());
     }
+
+    const loginModalBtn = document.getElementById('btn-login-modal');
+    const loginModal = document.getElementById('login-modal');
+    const loginModalClose = document.getElementById('login-modal-close');
+    const loginModalCancel = document.getElementById('login-modal-cancel');
+    const loginForm = document.getElementById('login-form');
+
+    if (loginModalBtn && loginModal) {
+      loginModalBtn.addEventListener('click', () => {
+        loginModal.style.display = 'flex';
+        const userInp = document.getElementById('login-username');
+        if (userInp) {
+          userInp.value = '';
+          userInp.focus();
+        }
+        const passInp = document.getElementById('login-password');
+        if (passInp) passInp.value = '';
+      });
+    }
+
+    const closeModal = () => {
+      if (loginModal) loginModal.style.display = 'none';
+    };
+
+    if (loginModalClose) loginModalClose.addEventListener('click', closeModal);
+    if (loginModalCancel) loginModalCancel.addEventListener('click', closeModal);
+
+    if (loginForm) {
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!username || !password) return;
+        closeModal();
+        await this.quickLogin(username, password);
+      });
+    }
+  },
+
+  fillLoginForm(username, password) {
+    const u = document.getElementById('login-username');
+    const p = document.getElementById('login-password');
+    if (u) u.value = username;
+    if (p) p.value = password;
   },
 
   async quickLogin(username, password) {
@@ -158,6 +202,8 @@ const App = {
       this.switchTab('store');
     }
 
+    const loginModalBtn = document.getElementById('btn-login-modal');
+
     if (Api.token && Api.user) {
       if (userDisplay) {
         userDisplay.innerHTML = `
@@ -169,6 +215,7 @@ const App = {
           </span>
         `;
       }
+      if (loginModalBtn) loginModalBtn.style.display = 'none';
       if (logoutBtn) logoutBtn.style.display = 'inline-flex';
       if (tokenBox) tokenBox.style.display = 'flex';
       if (tokenDisplay) tokenDisplay.textContent = Api.token;
@@ -176,6 +223,7 @@ const App = {
       if (userDisplay) {
         userDisplay.innerHTML = `<span style="color: var(--text-muted); font-size: 0.85rem;">Not Authenticated</span>`;
       }
+      if (loginModalBtn) loginModalBtn.style.display = 'inline-flex';
       if (logoutBtn) logoutBtn.style.display = 'none';
       if (tokenBox) tokenBox.style.display = 'none';
       if (tokenDisplay) tokenDisplay.textContent = '';

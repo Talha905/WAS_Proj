@@ -41,6 +41,9 @@
       <div id="user-session-text">
         <span style="color: var(--text-muted); font-size: 0.85rem;">Not Authenticated</span>
       </div>
+      <button class="btn btn-sm btn-primary" id="btn-login-modal">
+        🔑 Sign In
+      </button>
       <button class="btn btn-sm btn-danger" id="btn-logout" style="display: none;">
         Log Out
       </button>
@@ -266,6 +269,40 @@
     </section>
 
   </main>
+
+  <!-- Sign In Modal -->
+  <div id="login-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 style="margin: 0; font-size: 1.15rem;">Account Sign In</h3>
+        <button class="modal-close" id="login-modal-close">&times;</button>
+      </div>
+      <form id="login-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="login-username">Username</label>
+            <input type="text" id="login-username" class="input-field" placeholder="e.g. alice, bob, or admin" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <input type="password" id="login-password" class="input-field" placeholder="Enter password" required>
+          </div>
+          
+          <div style="margin-bottom: 16px; font-size: 0.8rem; color: var(--text-muted);">
+            <span>Quick fill:</span>
+            <a href="javascript:void(0)" onclick="App.fillLoginForm('alice', 'password123')" style="color: var(--brand-indigo); margin-left: 6px; text-decoration: underline;">Alice</a> |
+            <a href="javascript:void(0)" onclick="App.fillLoginForm('bob', 'password123')" style="color: var(--brand-indigo); margin-left: 6px; text-decoration: underline;">Bob</a> |
+            <a href="javascript:void(0)" onclick="App.fillLoginForm('admin', 'admin123')" style="color: var(--brand-indigo); margin-left: 6px; text-decoration: underline;">Admin</a>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+            <button type="button" class="btn btn-outline" id="login-modal-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="login-submit-btn">Sign In</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Checkout Modal (Order Placement) -->
   <div id="checkout-modal" class="modal-backdrop" style="display: none;">
