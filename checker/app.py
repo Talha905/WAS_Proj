@@ -11,7 +11,7 @@ import json
 import os
 from datetime import datetime, timezone
 from io import BytesIO
-
+from urllib.parse import urlsplit
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 
@@ -22,7 +22,32 @@ from reporters.pdf_reporter import generate_pdf
 from reporters.docx_reporter import generate_docx
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+def is_allowed_target(target_url):
+    allowed = {
+        value.strip().rstrip("/")
+        for value in os.environ.get("ALLOWED_TARGETS", "").split(",")
+        if value.strip()
+    }
+
+    try:
+        parsed = urlsplit(target_url)
+        if parsed.scheme != "https" or not parsed.netloc:
+            return False
+
+        normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
+        return normalized in allowed
+    except ValueError:
+        return False
+    
+CORS(
+    app,
+    resources={r"/api/*": {
+        "origins": os.environ.get(
+            "DASHBOARD_ORIGIN",
+            "http://localhost:3000"
+        )
+    }}
+)
 
 # ---------------------------------------------------------------------------
 # DB init on startup
@@ -67,6 +92,11 @@ def start_scan():
     target_url = body.get("target_url", "").strip()
     if not target_url:
         return jsonify({"error": "target_url is required"}), 400
+
+    if not is_allowed_target(target_url):
+        return jsonify({
+            "error": "Target URL is not in the authorized target allowlist"
+        }), 403
 
     # -----------------------------------------------------------------------
     # Support both the dashboard format and the direct API format
