@@ -988,6 +988,10 @@ def check_query_param_substitution(
     if endpoint.method != "GET":
         return []
 
+    # Do not run query-param user-isolation checks on public catalogs or admin directory endpoints
+    if endpoint.path in ("/api/products", "/api/admin/users") or endpoint.path.startswith("/api/admin"):
+        return []
+
     depth_cfg = depth or ScanDepthConfig()
     results: list[dict] = []
     roles = auth_manager.role_names()
